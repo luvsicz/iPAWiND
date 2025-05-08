@@ -3,6 +3,7 @@ version: '3.7'
 services:
   api:
     # platform: linux/x86_64
+    # platform: linux/amd64 zsign build from https://github.com/zhlynn/zsign 
     image: aiogram/telegram-bot-api:latest
     restart: always
     environment:

@@ -302,7 +302,7 @@ async def get_ipa_and_sign(message: types.Message, state: FSMContext):
             pass
         plist_random = str(uuid.uuid4())
         r2_url = await r2.upload_file(file,
-                                      f"{message.from_user.id}/{random_id}.ipa")
+                                      f"ipa/{message.from_user.id}/{random_id}.ipa")
         
         details = cursor.execute(f"SELECT * from redirects where user_id={message.from_user.id}").fetchone()
         
@@ -316,7 +316,7 @@ async def get_ipa_and_sign(message: types.Message, state: FSMContext):
                     redirect_url = details[6] if (details and details[6] != "default") else "https://raw.githubusercontent.com/NekooGroup/api/main/appicon.png"
                 ).encode()
             ),
-            f"{plist_random}.plist"
+            f"plist/{plist_random}.plist"
         )
 
 
@@ -326,7 +326,7 @@ async def get_ipa_and_sign(message: types.Message, state: FSMContext):
                 "url": f"itms-services://?action=download-manifest&url={plist_url}",
                 "duration": "30"
             })
-            response_url = "ipa_bot"
+            response_url = "url"
             # else:
             #     api = details[4]
             #     channel_link = details[2]
@@ -373,7 +373,7 @@ async def get_ipa_and_sign(message: types.Message, state: FSMContext):
                 logger.error(f"Failed to delete signed.ipa, sign failed?\n{stdout}")
 
             await alert.edit_text(
-                f"{strings.get('sign_ok', message.from_user.id)}\n\nApp Name: {app_name}\nBundel ID: {bundleID}\nLink: <blockquote>{short_url.get(response_url)}&mode=compact</blockquote>",
+                f"{strings.get('sign_ok', message.from_user.id)}\n\nApp Name: {app_name}\nBundel ID: {bundleID}\nLink: <blockquote>{short_url.get(response_url)}</blockquote>",
                 parse_mode='html',
                 reply_markup=main_btns.add(types.InlineKeyboardButton(text=strings.get("install", message.from_user.id),
-                                                                      url=f"{short_url.get(response_url)}&mode=compact")))
+                                                                      url=f"{short_url.get(response_url)}")))

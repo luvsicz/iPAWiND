@@ -4,3 +4,6 @@ apscheduler
 aioboto3
 aiofiles
 TgCrypto
+PyJWT
+pytz
+tzlocal

@@ -6,22 +6,59 @@ services:
     image: aiogram/telegram-bot-api:latest
     restart: always
     environment:
-      TELEGRAM_API_ID: 3725072
-      TELEGRAM_API_HASH: 030a284a8d54f448060212ad99a81687
+      TELEGRAM_API_ID: 123123
+      TELEGRAM_API_HASH: b4c46123321231ffc31ab6ee
       TELEGRAM_LOCAL: 1
     volumes:
       - telegram-bot-api-data:/var/lib/telegram-bot-api
-
-  nginx:
-    image: nginx:1.19-alpine
+  # nginx:
+  #   image: nginx:1.19-alpine
+  #   restart: always
+  #   depends_on:
+  #     - api
+  #   volumes:
+  #     - telegram-bot-api-data:/var/lib/telegram-bot-api
+  #     - ./nginx:/etc/nginx/conf.d/
+  #   ports:
+  #     - "81:81"
+  ipawind:
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: always
     depends_on:
       - api
+      # - nginx
+    # Add a delay to ensure API is fully ready
+    command: >
+      bash -c "
+        echo 'Waiting for API to be ready...' &&
+        sleep 3 &&
+        /app/entrypoint.sh
+      "
+    environment:
+      # Bot configuration
+      - BOT_TOKEN=${BOT_TOKEN:-Your Bot Token}
+      - API_ID=${API_ID:-8}
+      - API_HASH=${API_HASH:-7245de8e747a0d6fbe11f7cc14fcc0bb}
+      - SERVER_ADDRESS=${SERVER_ADDRESS:-Your-url-shortner-api}
+      - ADMIN_IDS=${ADMIN_IDS:-123123123}
+      - PASSWORD=${PASSWORD:-1}
+      - API_KEY=${API_KEY:-}
+      # R2 Storage configuration
+      - R2_ENDPOINT=${R2_ENDPOINT:-https://Example.r2.cloudflarestorage.com}
+      - R2_ACCESS_KEY=${R2_ACCESS_KEY:-KeyExample}
+      - R2_SECRET_KEY=${R2_SECRET_KEY:-LongKeyExaemplef74b9f9b30bbaa7ad72eb053c9f7616}
+      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-BucketName}
+      - R2_DOMAIN=${R2_DOMAIN:-https://yourDomainforR2.com}
+      # R2 PLIST Storage configuration
+      - R2_PLIST_ENDPOINT=${R2_PLIST_ENDPOINT:-https://Example.r2.cloudflarestorage.com}
+      - R2_PLIST_ACCESS_KEY=${R2_PLIST_ACCESS_KEY:-KeyExample}
+      - R2_PLIST_SECRET_KEY=${R2_PLIST_SECRET_KEY:-LongKeyExaemplef74b9f9b30bbaa7ad72eb053c9f7616}
+      - R2_PLIST_BUCKET_NAME=${R2_PLIST_BUCKET_NAME:-Bucketname}
+      - R2_PLIST_DOMAIN=${R2_PLIST_DOMAIN:-https://yourDomainforR2.com}
     volumes:
-      - telegram-bot-api-data:/var/lib/telegram-bot-api
-      - ./nginx:/etc/nginx/conf.d/
-    ports:
-      - "81:81"
-
+      - ./database.db:/app/database.db
+      - ./sessions:/app/sessions
 volumes:
   telegram-bot-api-data:

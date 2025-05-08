@@ -1,4 +1,3 @@
-
 # Telegram iOS app signer bot.
 
 iPAWiND is an iOS app signer bot for Telegram. It allows users to sign and install iOS applications directly through Telegram, making the sideloading process more accessible.
@@ -23,60 +22,62 @@ Telegram Bot: [@ipawind_bot](https://t.me/ipawind_bot)
 
 ## Installation
 
-### Step 1: Update and Install Essential Packages
+## Step 1: Setup Cloudflare Worker Shortener
 
-```bash
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y zip unzip build-essential checkinstall zlib1g-dev libssl-dev git make g++ pkg-config  libminizip-dev  zlib1g-dev zip unzip nodejs
-```
+Set up a URL shortener using Cloudflare Workers:
+- Follow the guide at: https://github.com/AppleEcosystem/ShortFlare
+- Update the `SERVER_ADDRESS` environment variable (Docker)
 
-```bash
-cd iPAWIND
-```
+## Step 2: Configure Cloudflare R2
 
-```bash
-npm install node-forge ocsp && nodejs tools/checker/resources.js
-```
+1. Create an R2 bucket in your Cloudflare account
+2. Configure R2 settings:
+   - For Docker: Update the R2 environment variables in your `.env` file
 
-```bash
-pip3 install -r requirements.txt
-```
+## Step 3: Docker Compose Run (X86_64 ARCH Only)
 
+1. Install Docker and Docker Compose:
+   - Follow the Docker installation guide: https://docs.docker.com/engine/install/ubuntu/
+   - Follow the Docker Compose installation guide: https://docs.docker.com/compose/install/
 
-## Step 2: Install Docker
-- Follow the Docker installation guide: https://docs.docker.com/engine/install/ubuntu/
+2. Configure environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit the `.env` file with your configuration:
+   - Set your Telegram Bot token (`BOT_TOKEN`)
+   - Configure Cloudflare R2 settings
 
-```bash
-docker compose up -d
-```
+3. Build and start the containers:
+   ```bash
+   docker compose down && docker compose build && docker compose up -d
+   ```
 
-## Step 3: setup cloudfalre worker shortner
-- https://github.com/AppleEcosystem/ShortFlare
+This will start two services:
+- `api`: Telegram Bot API server
+- `ipawind`: The iPAWiND bot service
 
+### Environment Variables
 
+All configuration is done through environment variables:
 
-## Step 4: Configure Cloudflare R2 and Bot Settings
+| Variable | Description | Default |
+|----------|-------------|---------|
+| BOT_TOKEN | Your Telegram Bot token | - |
+| API_ID | Telegram API ID | 8 |
+| API_HASH | Telegram API Hash | 7245de8e747a0d6fbe11f7cc14fcc0bb |
+| SERVER_ADDRESS | URL shortener API address | - |
+| ADMIN_IDS | Comma-separated list of admin user IDs | 719363292 |
+| R2_ENDPOINT | Cloudflare R2 endpoint | - |
+| R2_ACCESS_KEY | Cloudflare R2 access key | - |
+| R2_SECRET_KEY | Cloudflare R2 secret key | - |
+| R2_BUCKET_NAME | Cloudflare R2 bucket name | - |
+| R2_DOMAIN | Cloudflare R2 domain | - |
 
-- Create an R2 bucket in your Cloudflare account.
-- Then, edit the following configuration files:
-
-- In bot/loader.py, update your Cloudflare R2 bucket settings
-- In bot/config.py, add your bot token and required API keys
-
-
-## Step 5: Run the bot
-```bash
-python -m bot
-```
-
-```bash
-screen -dmS bot python3 -m bot
-```
+For a complete list of environment variables, see the `.env.example` file.
 
 # Setup Complete
-# Your iPAWiND setup is now ready. If you encounter any issues, double-check the configuration files and ensure all packages are properly installed. or create issue on github
+
+Your iPAWiND setup is now ready. If you encounter any issues, double-check the configuration files and ensure all packages are properly installed, or create an issue on GitHub.
 
 
-## License
-
-ipawind is licensed under the terms of MIT License. See the [LICENSE](LICENSE) file. 

@@ -2,9 +2,10 @@ import asyncio
 import logging
 import uuid
 
-import os 
+import os
 import io 
 import time
+import shutil
 
 from bot.config import bot_token
 from aiogram.types import Message 
@@ -58,7 +59,10 @@ async def download(document, path, message: Message = None):
             progress_args=(file_size, chat_id, message_id, last_edit_time, edit_counter, last_progress_percentage)
         )
     else: x = await pyrogram_bot.download_media(message=document.file_id)
-    os.renames(x, path)
+    # Create target directory if it doesn't exist
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    # Use shutil.move instead of os.renames for cross-device operations
+    shutil.move(x, path)
 
 
 async def download_aiogram_bytes(document):

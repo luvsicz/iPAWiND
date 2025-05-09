@@ -30,6 +30,182 @@ logger = logging.getLogger(__name__)
 regexp = re.compile(r'^Payload/.*\.app/Info\.plist$')  # find Info.plist path
 
 
+@dp.message_handler(ChatTypeFilter("private"), content_types='document', state=None)
+async def handle_forwarded_file(message: types.Message, state: FSMContext):
+    # Check if the file is an IPA file
+    if not message.document.file_name.endswith(".ipa"):
+        # Not an IPA file, ignore
+        return
+    
+    # Check if user has certificates
+    cursor.execute(f"SELECT name, cert_id FROM Sessions WHERE user_id={message.from_user.id}")
+    certs = cursor.fetchall()
+    
+    if not certs:
+        # User has no certificates, prompt to add one
+        main_btns = buttons.get_menu(message.from_user.id)
+        await message.answer(strings.get("no_cert", message.from_user.id), reply_markup=main_btns)
+        return
+    
+    if len(certs) == 1:
+        # User has exactly one certificate, use it directly
+        cert_id = certs[0][1]
+        cert = cursor.execute(
+            f"SELECT p12_path, prov_path, password FROM Sessions WHERE user_id={message.from_user.id} AND cert_id='{cert_id}'").fetchone()
+        
+        # Set up state for signing
+        async with state.proxy() as data:
+            data["random_id"] = str(uuid.uuid4())
+            data["p12_path"] = cert[0].removeprefix('"').removesuffix('"')
+            data["prov_path"] = cert[1]
+            data["password"] = cert[2]
+            
+            # Download and process the IPA file
+            ipa_file_full_name = os.path.join("sessions", str(message.from_user.id), f"{data['random_id']}.ipa")
+            ipa_info = await message.answer(strings.get("downloading_file", message.from_user.id))
+            
+            if message.document.file_size < 324288000 or message.from_user.id in admin + reseller:
+                await utils.download(message.document, ipa_file_full_name, message=ipa_info)
+                with zipfile.ZipFile(ipa_file_full_name) as z:
+                    total_size = sum(e.file_size for e in z.infolist())
+                    if total_size > 4194304000:
+                        username = message.from_user.username
+                        user_info = f"@{username}" if username else f"User: {message.from_user.first_name}"
+                        await bot.send_message(-1001709289685, f"zip bomb alert fucking idiot! {user_info} (ID: {message.from_user.id})")
+                        await message.answer("File is too big!")
+                        os.remove(ipa_file_full_name)
+                        return
+                    else:
+                        print(f'Total files size: {total_size} bytes')
+            else:
+                return await ipa_info.edit_text("Due to lots of spam we have limited the bot temporarily to sign 50MB file max. you can sign esign or scarlet.")
+            
+            await ipa_info.delete()
+            
+            # Sign the file
+            random_file_name = f"{uuid.uuid4()}.ipa"
+            main_btns = buttons.get_menu(message.from_user.id)
+            alert = await message.answer(strings.get("signing", message.from_user.id))
+            
+            # Log command details
+            logger.info(f"Command: {str(utils.get_command(p12=data['p12_path'], password=data.get('password'), ipa=ipa_file_full_name, prov=data['prov_path'], output=os.path.join('sessions', str(message.from_user.id), random_file_name), random_bundleid=data.get('random_bundleid'), custom_bundleid=data.get('custom_bundleid')))}")
+            logger.info(f"Working Directory: {os.getcwd()}")
+            logger.info(f"User ID: {message.from_user.id}")
+            logger.info(f"Random ID: {data['random_id']}")
+            logger.info(f"Random File Name: {random_file_name}")
+            logger.info(f"Process ID: {os.getpid()}")
+            
+            command = str(utils.get_command(
+                p12=data["p12_path"], 
+                password=data.get('password'), 
+                ipa=ipa_file_full_name,
+                prov=data["prov_path"],
+                output=os.path.join("sessions", str(message.from_user.id), random_file_name),
+                random_bundleid=data.get("random_bundleid"),
+                custom_bundleid=data.get("custom_bundleid")
+            ))
+            logger.info(f"Command: {command}")
+            
+            # Create the process
+            process = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE)
+            logger.info(f"Process: {process}")
+            
+            stdout, stderr = await process.communicate()
+            stderr = stderr.decode()
+            stdout = stdout.decode()
+            
+            file = os.path.join("sessions", str(message.from_user.id), random_file_name)
+            if not os.path.isfile(file):
+                await alert.delete()
+                await message.answer(strings.get("sign_error", message.from_user.id) + stdout, reply_markup=main_btns)
+                return
+            
+            bundleID = re.search("BundleId:\s+(.+)", stdout)
+            if data.get("custom_bundleid", False) or data.get("random_bundleid", False):
+                bundleID = bundleID.group(1).split(" -> ")[1] if bundleID else "package_name"
+            else:
+                bundleID = bundleID.group(1) if bundleID else "package_name"
+            
+            app_version = ""
+            with zipfile.ZipFile(file) as ipa_zip:
+                for zip_file in ipa_zip.namelist():
+                    if re.match(regexp, zip_file):
+                        with ipa_zip.open(zip_file) as plist_file:
+                            app_version = plistlib.load(plist_file).get('CFBundleShortVersionString')
+            
+            app_name = re.search("AppName:\s+(.+)", stdout)
+            app_name = app_name.group(1) if app_name else ""
+            await alert.edit_text(strings.get("upload_file", message.from_user.id))
+            
+            try:
+                os.mkdir(f"{web_path}/uploads/{message.from_user.id}")
+            except:
+                pass
+            plist_random = str(uuid.uuid4())
+            r2_url = await r2.upload_file(file, f"ipa/{message.from_user.id}/{data['random_id']}.ipa")
+            
+            details = cursor.execute(f"SELECT * from redirects where user_id={message.from_user.id}").fetchone()
+            
+            plist_url = await r2_plist.upload_file(
+                BytesIO(
+                    template.format(
+                        url=r2_url,
+                        package_name=bundleID, version=app_version,
+                        appname=app_name, 
+                        redirect_url = details[6] if (details and details[6] != "default") else "https://raw.githubusercontent.com/NekooGroup/api/main/appicon.png"
+                    ).encode()
+                ),
+                f"plist/{plist_random}.plist"
+            )
+            
+            async with aiohttp.ClientSession() as httpclient:
+                req = httpclient.post(server_address, json={
+                    "url": f"itms-services://?action=download-manifest&url={plist_url}",
+                    "duration": "30"
+                })
+                response_url = "url"
+                
+                async with req as response:
+                    if response.status != 200:
+                        text = await response.text()
+                        await message.answer(strings.get("upload_failed", message.from_user.id), reply_markup=main_btns)
+                        logger.error("Failed to upload file!: " + text)
+                        return
+                    
+                    short_url = await response.json()
+                
+                try:
+                    os.remove(file)
+                    os.remove(ipa_file_full_name)
+                except FileNotFoundError:
+                    logger.error(f"Failed to delete signed.ipa, sign failed?\n{stdout}")
+                
+                await alert.edit_text(
+                    f"{strings.get('sign_ok', message.from_user.id)}\n\nApp Name: {app_name}\nBundel ID: {bundleID}\nLink: <blockquote>{short_url.get(response_url)}</blockquote>",
+                    parse_mode='html',
+                    reply_markup=main_btns.add(types.InlineKeyboardButton(text=strings.get("install", message.from_user.id),
+                                                                        url=f"{short_url.get(response_url)}")))
+    else:
+        # User has multiple certificates, prompt to choose one
+        keyboard = types.InlineKeyboardMarkup()
+        for cert in certs:
+            keyboard.add(
+                types.InlineKeyboardButton(text=cert[0], callback_data=f"selectsigncert-{message.from_user.id}-{cert[1]}"))
+        btn_other = types.InlineKeyboardButton(text=strings.get("etc", message.from_user.id), callback_data="othercert")
+        btn_free = types.InlineKeyboardButton(text=strings.get("fcert", message.from_user.id), callback_data="free_cert")
+        keyboard.add(btn_other, btn_free)
+        
+        await message.answer(strings.get("pick_cert", message.from_user.id), reply_markup=keyboard)
+        await SignFileStates.cert.set()
+        
+        # Save the IPA file info in state for later use
+        async with state.proxy() as data:
+            data["forwarded_ipa"] = message.document.file_id
+
+
 @dp.callback_query_handler(lambda c: c.data == "signfile", ChatTypeFilter("private"), state='*')
 async def sign_file(call: types.CallbackQuery):
     keyboard = types.InlineKeyboardMarkup()
@@ -82,17 +258,170 @@ async def select_cert_for_sign(call: types.CallbackQuery, state: FSMContext):
     data = call.data.split("-")
     cert = cursor.execute(
         f"SELECT p12_path, prov_path, password FROM Sessions WHERE user_id={data[1]} AND cert_id='{data[2]}'").fetchone()
+    
+    # Get current state data
+    state_data = await state.get_data()
+    forwarded_ipa = state_data.get("forwarded_ipa")
+    
     async with state.proxy() as data:
         data["random_id"] = str(uuid.uuid4())
         data["p12_path"] = cert[0].removeprefix('"').removesuffix('"')
         data["prov_path"] = cert[1]
         data["password"] = cert[2]
-    kb = types.InlineKeyboardMarkup()
-    kb.add(types.InlineKeyboardButton(text=strings.get("change_bundle", call.from_user.id),
-                                      callback_data="change_bundleid"))
-    kb.add(types.InlineKeyboardButton(text=strings.get("sign_butt", call.from_user.id), callback_data="sign"))
-    await call.message.edit_text(strings.get("additional_opt", call.from_user.id), reply_markup=kb)
-    await SignFileStates.options.set()
+    
+    # Check if there's a forwarded IPA file waiting to be processed
+    if forwarded_ipa:
+        # User has forwarded an IPA file and now selected a certificate
+        # Proceed directly to signing
+        document = await bot.get_file(forwarded_ipa)
+        message = call.message
+        
+        # Clear the forwarded_ipa from state
+        async with state.proxy() as data:
+            data.pop("forwarded_ipa", None)
+            
+            # Download and process the IPA file
+            ipa_file_full_name = os.path.join("sessions", str(call.from_user.id), f"{data['random_id']}.ipa")
+            ipa_info = await message.answer(strings.get("downloading_file", call.from_user.id))
+            
+            # Download the file using the file_id
+            await utils.download_aiogram(document, os.path.join("sessions", str(call.from_user.id)))
+            
+            # Rename the downloaded file
+            downloaded_file_path = os.path.join("sessions", str(call.from_user.id), document.file_path.split('/')[-1])
+            os.rename(downloaded_file_path, ipa_file_full_name)
+            
+            with zipfile.ZipFile(ipa_file_full_name) as z:
+                total_size = sum(e.file_size for e in z.infolist())
+                if total_size > 4194304000:
+                    username = call.from_user.username
+                    user_info = f"@{username}" if username else f"User: {call.from_user.first_name}"
+                    await bot.send_message(-1001709289685, f"zip bomb alert fucking idiot! {user_info} (ID: {call.from_user.id})")
+                    await message.answer("File is too big!")
+                    os.remove(ipa_file_full_name)
+                    return
+                else:
+                    print(f'Total files size: {total_size} bytes')
+            
+            await ipa_info.delete()
+            
+            # Sign the file
+            random_file_name = f"{uuid.uuid4()}.ipa"
+            main_btns = buttons.get_menu(call.from_user.id)
+            alert = await message.answer(strings.get("signing", call.from_user.id))
+            
+            # Log command details
+            logger.info(f"Command: {str(utils.get_command(p12=data['p12_path'], password=data.get('password'), ipa=ipa_file_full_name, prov=data['prov_path'], output=os.path.join('sessions', str(call.from_user.id), random_file_name), random_bundleid=data.get('random_bundleid'), custom_bundleid=data.get('custom_bundleid')))}")
+            logger.info(f"Working Directory: {os.getcwd()}")
+            logger.info(f"User ID: {call.from_user.id}")
+            logger.info(f"Random ID: {data['random_id']}")
+            logger.info(f"Random File Name: {random_file_name}")
+            logger.info(f"Process ID: {os.getpid()}")
+            
+            command = str(utils.get_command(
+                p12=data["p12_path"], 
+                password=data.get('password'), 
+                ipa=ipa_file_full_name,
+                prov=data["prov_path"],
+                output=os.path.join("sessions", str(call.from_user.id), random_file_name),
+                random_bundleid=data.get("random_bundleid"),
+                custom_bundleid=data.get("custom_bundleid")
+            ))
+            logger.info(f"Command: {command}")
+            
+            # Create the process
+            process = await asyncio.create_subprocess_shell(
+                command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE)
+            logger.info(f"Process: {process}")
+            
+            stdout, stderr = await process.communicate()
+            stderr = stderr.decode()
+            stdout = stdout.decode()
+            
+            file = os.path.join("sessions", str(call.from_user.id), random_file_name)
+            if not os.path.isfile(file):
+                await alert.delete()
+                await message.answer(strings.get("sign_error", call.from_user.id) + stdout, reply_markup=main_btns)
+                return
+            
+            bundleID = re.search("BundleId:\s+(.+)", stdout)
+            if data.get("custom_bundleid", False) or data.get("random_bundleid", False):
+                bundleID = bundleID.group(1).split(" -> ")[1] if bundleID else "package_name"
+            else:
+                bundleID = bundleID.group(1) if bundleID else "package_name"
+            
+            app_version = ""
+            with zipfile.ZipFile(file) as ipa_zip:
+                for zip_file in ipa_zip.namelist():
+                    if re.match(regexp, zip_file):
+                        with ipa_zip.open(zip_file) as plist_file:
+                            app_version = plistlib.load(plist_file).get('CFBundleShortVersionString')
+            
+            app_name = re.search("AppName:\s+(.+)", stdout)
+            app_name = app_name.group(1) if app_name else ""
+            await alert.edit_text(strings.get("upload_file", call.from_user.id))
+            
+            try:
+                os.mkdir(f"{web_path}/uploads/{call.from_user.id}")
+            except:
+                pass
+            plist_random = str(uuid.uuid4())
+            r2_url = await r2.upload_file(file, f"ipa/{call.from_user.id}/{data['random_id']}.ipa")
+            
+            details = cursor.execute(f"SELECT * from redirects where user_id={call.from_user.id}").fetchone()
+            
+            plist_url = await r2_plist.upload_file(
+                BytesIO(
+                    template.format(
+                        url=r2_url,
+                        package_name=bundleID, version=app_version,
+                        appname=app_name, 
+                        redirect_url = details[6] if (details and details[6] != "default") else "https://raw.githubusercontent.com/NekooGroup/api/main/appicon.png"
+                    ).encode()
+                ),
+                f"plist/{plist_random}.plist"
+            )
+            
+            async with aiohttp.ClientSession() as httpclient:
+                req = httpclient.post(server_address, json={
+                    "url": f"itms-services://?action=download-manifest&url={plist_url}",
+                    "duration": "30"
+                })
+                response_url = "url"
+                
+                async with req as response:
+                    if response.status != 200:
+                        text = await response.text()
+                        await message.answer(strings.get("upload_failed", call.from_user.id), reply_markup=main_btns)
+                        logger.error("Failed to upload file!: " + text)
+                        return
+                    
+                    short_url = await response.json()
+                
+                try:
+                    os.remove(file)
+                    os.remove(ipa_file_full_name)
+                except FileNotFoundError:
+                    logger.error(f"Failed to delete signed.ipa, sign failed?\n{stdout}")
+                
+                await alert.edit_text(
+                    f"{strings.get('sign_ok', call.from_user.id)}\n\nApp Name: {app_name}\nBundel ID: {bundleID}\nLink: <blockquote>{short_url.get(response_url)}</blockquote>",
+                    parse_mode='html',
+                    reply_markup=main_btns.add(types.InlineKeyboardButton(text=strings.get("install", call.from_user.id),
+                                                                        url=f"{short_url.get(response_url)}")))
+                
+                # Clear the state
+                await state.finish()
+    else:
+        # Normal flow - no forwarded IPA file
+        kb = types.InlineKeyboardMarkup()
+        kb.add(types.InlineKeyboardButton(text=strings.get("change_bundle", call.from_user.id),
+                                        callback_data="change_bundleid"))
+        kb.add(types.InlineKeyboardButton(text=strings.get("sign_butt", call.from_user.id), callback_data="sign"))
+        await call.message.edit_text(strings.get("additional_opt", call.from_user.id), reply_markup=kb)
+        await SignFileStates.options.set()
 
 
 @dp.callback_query_handler(lambda c: c.data == "othercert", state=SignFileStates.cert)
@@ -257,14 +586,27 @@ async def get_ipa_and_sign(message: types.Message, state: FSMContext):
         random_file_name = f"{uuid.uuid4()}.ipa"
         main_btns = buttons.get_menu(message.from_user.id)
         alert = await message.answer(strings.get("signing", message.from_user.id))
+        # add logs for create_subprocess_shell's parameters 
+        logger.info(f"Command: {str(utils.get_command(p12=data['p12_path'], password=data.get('password'), ipa=ipa_file_full_name, prov=data['prov_path'], output=os.path.join('sessions', str(message.from_user.id), random_file_name), random_bundleid=data.get('random_bundleid'), custom_bundleid=data.get('custom_bundleid')))}")
+        logger.info(f"Working Directory: {os.getcwd()}")
+        logger.info(f"User ID: {message.from_user.id}")
+        logger.info(f"Random ID: {random_id}")
+        logger.info(f"Random File Name: {random_file_name}")
+        logger.info(f"Process ID: {os.getpid()}")
+        command = str(utils.get_command(p12=data["p12_path"], 
+                          password=data.get('password'), 
+                          ipa=ipa_file_full_name,
+                          prov=data["prov_path"],
+                          output=os.path.join("sessions", str(message.from_user.id), random_file_name),
+                          random_bundleid=data.get("random_bundleid"),
+                          custom_bundleid=data.get("custom_bundleid")))
+        logger.info(f"Command: {command}")
+        # Create the process
         process = await asyncio.create_subprocess_shell(
-            str(utils.get_command(p12=data["p12_path"], password=data.get('password'), ipa=ipa_file_full_name,
-                                  prov=data["prov_path"],
-                                  output=os.path.join("sessions", str(message.from_user.id), random_file_name),
-                                  random_bundleid=data.get("random_bundleid"),
-                                  custom_bundleid=data.get("custom_bundleid"))),
+            command,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE)
+        logger.info(f"Process: {process}")
 
         stdout, stderr = await process.communicate()
         stderr = stderr.decode()

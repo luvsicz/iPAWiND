@@ -1,83 +1,83 @@
-# Telegram iOS app signer bot.
+# Telegram iOS应用签名机器人
 
-iPAWiND is an iOS app signer bot for Telegram. It allows users to sign and install iOS applications directly through Telegram, making the sideloading process more accessible.
+iPAWiND是一个用于Telegram的iOS应用签名机器人。它允许用户通过Telegram直接签名并安装iOS应用程序，使旁加载过程更加便捷。
 
-Telegram Bot: [@ipawind_bot](https://t.me/ipawind_bot)
+Telegram机器人: [@ipawind_bot](https://t.me/ipawind_bot)
 
-## Features
+## 功能特点
 
-- Sign iOS apps (.ipa files) directly through Telegram
-- Automatic provisioning profile management
-- Support for various signing certificates
-- Easy installation and configuration
-- Docker support for simple deployment
+- 通过Telegram直接签名iOS应用（.ipa文件）
+- 自动配置文件管理
+- 支持各种签名证书
+- 简易安装和配置
+- 支持Docker部署
 
-## Prerequisites
+## 前提条件
 
-- Linux server (Ubuntu/Debian recommended)
+- Linux服务器（推荐Ubuntu/Debian）
 - Python 3.8+
-- Node.js and npm
-- Docker and Docker Compose (optional, for containerized setup)
-- Telegram Bot API token
+- Node.js和npm
+- Docker和Docker Compose（可选，用于容器化部署）
+- Telegram Bot API令牌
 
-## Installation
+## 安装
 
-## Step 1: Setup Cloudflare Worker Shortener
+## 步骤1：设置Cloudflare Worker短链接服务
 
-Set up a URL shortener using Cloudflare Workers:
-- Follow the guide at: https://github.com/AppleEcosystem/ShortFlare
-- Update the `SERVER_ADDRESS` environment variable (Docker)
+使用Cloudflare Workers设置URL短链接服务：
+- 按照以下指南操作：https://github.com/AppleEcosystem/ShortFlare
+- 更新`SERVER_ADDRESS`环境变量（Docker）
 
-## Step 2: Configure Cloudflare R2
+## 步骤2：配置Cloudflare R2
 
-1. Create an R2 bucket in your Cloudflare account
-2. Configure R2 settings:
-   - For Docker: Update the R2 environment variables in your `.env` file
+1. 在您的Cloudflare账户中创建R2存储桶
+2. 配置R2设置：
+   - 对于Docker：在`.env`文件中更新R2环境变量
 
-## Step 3: Docker Compose Run (X86_64 ARCH Only)
+## 步骤3：Docker Compose运行
 
-1. Install Docker and Docker Compose:
-   - Follow the Docker installation guide: https://docs.docker.com/engine/install/ubuntu/
-   - Follow the Docker Compose installation guide: https://docs.docker.com/compose/install/
+1. 安装Docker和Docker Compose：
+   - 按照Docker安装指南操作：https://docs.docker.com/engine/install/ubuntu/
+   - 按照Docker Compose安装指南操作：https://docs.docker.com/compose/install/
 
-2. Configure environment variables:
+2. 配置环境变量：
    ```bash
    cp .env.example .env
    ```
-   Edit the `.env` file with your configuration:
-   - Set your Telegram Bot token (`BOT_TOKEN`)
-   - Configure Cloudflare R2 settings
+   使用您的配置编辑`.env`文件：
+   - 设置您的Telegram Bot令牌（`BOT_TOKEN`）
+   - 配置Cloudflare R2设置
 
-3. Build and start the containers:
+3. 构建并启动容器：
    ```bash
    docker compose down && docker compose build && docker compose up -d
    ```
+4. 编译不同架构平台能使用的zsign （可选）
+ - 按照 https://github.com/zhlynn/zsign 教程编译替换即可
 
-This will start two services:
-- `api`: Telegram Bot API server
-- `ipawind`: The iPAWiND bot service
+这将启动两个服务：
+- `api`：Telegram Bot API服务器
+- `ipawind`：iPAWiND机器人服务
 
-### Environment Variables
+### 环境变量
 
-All configuration is done through environment variables:
+所有配置通过环境变量完成：
 
-| Variable | Description | Default |
+| 变量 | 描述 | 默认值 |
 |----------|-------------|---------|
-| BOT_TOKEN | Your Telegram Bot token | - |
-| API_ID | Telegram API ID | 8 |
-| API_HASH | Telegram API Hash | 7245de8e747a0d6fbe11f7cc14fcc0bb |
-| SERVER_ADDRESS | URL shortener API address | - |
-| ADMIN_IDS | Comma-separated list of admin user IDs | 719363292 |
-| R2_ENDPOINT | Cloudflare R2 endpoint | - |
-| R2_ACCESS_KEY | Cloudflare R2 access key | - |
-| R2_SECRET_KEY | Cloudflare R2 secret key | - |
-| R2_BUCKET_NAME | Cloudflare R2 bucket name | - |
-| R2_DOMAIN | Cloudflare R2 domain | - |
+| BOT_TOKEN | 您的Telegram Bot令牌 | - |
+| API_ID | Telegram API ID | 8888888 |
+| API_HASH | Telegram API Hash | aaabbbcccdddeeefffffff |
+| SERVER_ADDRESS | URL短链接API地址 | - |
+| ADMIN_IDS | 管理员用户ID（逗号分隔列表） | 8888888 |
+| R2_ENDPOINT | Cloudflare R2端点 | - |
+| R2_ACCESS_KEY | Cloudflare R2访问密钥 | - |
+| R2_SECRET_KEY | Cloudflare R2密钥 | - |
+| R2_BUCKET_NAME | Cloudflare R2存储桶名称 | - |
+| R2_DOMAIN | Cloudflare R2域名 | - |
 
-For a complete list of environment variables, see the `.env.example` file.
+有关环境变量的完整列表，请参阅`.env.example`文件。
 
-# Setup Complete
+# 设置完成
 
-Your iPAWiND setup is now ready. If you encounter any issues, double-check the configuration files and ensure all packages are properly installed, or create an issue on GitHub.
-
-
+在TG上发起会话即可

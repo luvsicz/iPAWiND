@@ -2,7 +2,7 @@ from bot.loader import cursor
 
 strings = {
     "uk": {
-        "fcert": "безкоштовний сертифікат",
+        "fcert": "FREE CERT",
         "upload_file": "Uploading the file",
         "select_domain": "Select a domain",
         "redirect_title": "Enter channel title",
@@ -13,6 +13,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "send_api_key": "Отправьте свой ключ или купите у @gyke69.",
         "start_choice": "Виберіть одну із опцій нижче.",
         "lang_choice": "Виберіть мову нижче: ",
@@ -97,7 +98,7 @@ strings = {
         "device": "Пристрій"
     },
     "ru": {
-	"fcert": "Бесплатный сертификат",
+	"fcert": "FREE CERT",
         "upload_file": "Uploading the file",
         "select_domain": "Select a domain",
         "redirect_title": "Enter channel title",
@@ -107,7 +108,8 @@ strings = {
         "delete_redirect": "Redirect details deleted.",
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
-        "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",        
+        "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "start_choice": "Выберете одну из опций ниже.",
         "send_api_key": "",
         "lang_choice": "Выберете язык ниже: ",
@@ -203,6 +205,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "send_api_key": "Send your key or buy from @gyke69",
         "start_choice": "Choose one of the options below.",
         "lang_choice": "Choose your language:",
@@ -286,7 +289,7 @@ strings = {
         "device": "Device"
         },
     "fa": {
-	"fcert": "Бесплатный сертификат",
+	"fcert": "FREE CERT",
         "upload_file": "Uploading the file",
         "select_domain": "Select a domain",
         "redirect_title": "Enter channel title",
@@ -297,6 +300,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "send_api_key": "Send your key or buy from @gyke69",
         "start_choice": "یکی از گزینه‌های زیر را انتخاب کنید.",
         "lang_choice": "زبان خود را انتخاب کنید:",
@@ -380,7 +384,7 @@ strings = {
         "device": "دستگاه"
         },
     "de": {
-	"fcert": "Бесплатный сертификат",
+	"fcert": "FREE CERT",
         "upload_file": "Uploading the file",
         "select_domain": "Select a domain",
         "redirect_title": "Enter channel title",
@@ -391,6 +395,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "send_api_key": "Send your key or buy from @gyke69",
         "start_choice": "Wählen Sie eine der unten stehenden Optionen.",
         "lang_choice": "Wählen Sie Ihre Sprache:",
@@ -484,6 +489,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "start_choice": "Aşağıdaki seçeneklerden birini seçin.",
         "lang_choice": "Dilinizi seçin:",
         "lang_changed": "Dil değiştirildi!",
@@ -577,6 +583,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "send_api_key": "Send your key or buy from @gyke69",
         "start_choice": "Elige una de las opciones a continuación.",
         "lang_choice": "Elige tu idioma:",
@@ -660,7 +667,7 @@ strings = {
         "device": "Dispositivo"
     },
     "zh": {
-	"fcert": "Бесплатный сертификат",
+	"fcert": "FREE CERT",
         "upload_file": "Uploading the file",
         "select_domain": "Select a domain",
         "redirect_title": "Enter channel title",
@@ -671,6 +678,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "您需要先添加证书。请在签名文件之前先添加证书。",
         "send_api_key": "Send your key or buy from @gyke69",
         "start_choice": "选择以下选项之一。",
         "lang_choice": "选择您的语言：",
@@ -754,7 +762,7 @@ strings = {
         "device": "设备"
     },
     "ar": {
-	"fcert": "Бесплатный сертификат",
+	"fcert": "FREE CERT",
         "upload_file": "Uploading the file",
         "select_domain": "Select a domain",
         "redirect_title": "Enter channel title",
@@ -765,6 +773,7 @@ strings = {
         "redirect_details": "API : {api}\nChannel Link : {channel_link}\nChannel Title : {channel_title}\nPlist Logo : {plist_logo}",
         "no_redirect_details":"No details saved!",
         "redirect_plist_logo": "Send me plist logo.\n\nSend /skip if you want to skip.",
+        "no_cert": "You need to add the certificate first. Please add the certificate before signing the file.",
         "send_api_key": "Send your key or buy from @gyke69",
         "start_choice": "اختر واحدة من الخيارات أدناه.",
         "lang_choice": "اختر لغتك:",

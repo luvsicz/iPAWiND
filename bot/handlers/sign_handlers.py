@@ -121,6 +121,10 @@ async def handle_forwarded_file(message: types.Message, state: FSMContext):
             if not os.path.isfile(file):
                 await alert.delete()
                 await message.answer(strings.get("sign_error", message.from_user.id) + stdout, reply_markup=main_btns)
+                try:
+                    os.remove(ipa_file_full_name)
+                except:
+                    pass
                 return
             
             bundleID = re.search("BundleId:\s+(.+)", stdout)
@@ -344,6 +348,10 @@ async def select_cert_for_sign(call: types.CallbackQuery, state: FSMContext):
             if not os.path.isfile(file):
                 await alert.delete()
                 await message.answer(strings.get("sign_error", call.from_user.id) + stdout, reply_markup=main_btns)
+                try:
+                    os.remove(ipa_file_full_name)
+                except:
+                    pass
                 return
             
             bundleID = re.search("BundleId:\s+(.+)", stdout)
@@ -616,6 +624,10 @@ async def get_ipa_and_sign(message: types.Message, state: FSMContext):
         if not os.path.isfile(file):
             await alert.delete()
             await message.answer(strings.get("sign_error", message.from_user.id) + stdout, reply_markup=main_btns)
+            try:
+                os.remove(ipa_file_full_name)
+            except:
+                pass
             return
         
         bundleID = re.search("BundleId:\s+(.+)", stdout)
